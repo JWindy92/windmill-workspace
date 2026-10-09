@@ -4,100 +4,165 @@
 
 This repository is the source of truth for Windmill job definitions and deployment configuration. It separates orchestration from reusable pipeline implementation.
 
-Windmill is responsible for job execution, scheduling, logs, and monitoring. Pipeline logic lives in independent Python repositories.
+Windmill handles job execution, scheduling, logs, and monitoring. Reusable pipeline logic lives in independent Python repositories.
 
-## Ecosystem
+## Ecosystem Overview
 
-| Component | Responsibility |
+Imagine three independent data projects: A, B, and C. Each has its own GitHub repository, code, tests, and dependencies. Windmill runs them through lightweight wrapper scripts stored in this repository.
+
+| Repository / Component | Responsibility |
 |---|---|
-| `windmill-workspace` | Windmill scripts, flows, metadata, and deployment configuration |
-| `data-ingest-*` repositories | Reusable data ingestion and transformation logic, tests, and dependencies |
-| `openbao_client` | Python client for retrieving secrets from OpenBao |
+| `data-ingest-a` | Pipeline A: data collection, transformation, and output |
+| `data-ingest-b` | Pipeline B: a separate ingestion pipeline |
+| `data-ingest-c` | Pipeline C: another independent ingestion pipeline |
+| `openbao_client` | Shared Python client for retrieving secrets from OpenBao |
+| `windmill-workspace` | Windmill wrappers, job metadata, and deployment configuration |
 | OpenBao | Centralized secret storage |
-| Windmill | Job execution, scheduling, and monitoring |
-| GitHub Actions + self-hosted runner | Automated testing and deployment (planned) |
+| Windmill | Executes jobs and manages schedules, logs, and failures |
+| GitHub Actions + self-hosted runner | Planned automation for testing and deployment |
 
-## Job Architecture
+## How the Repositories Integrate
 
-Each pipeline is developed and tested independently. A small Windmill wrapper imports the published pipeline package and `openbao_client`, retrieves the required secrets, and invokes the pipeline entry point.
+Each pipeline is developed and maintained independently. The Windmill workspace does not contain the implementation of every pipeline; it contains the small scripts that connect those implementations to Windmill.
 
 ```text
-GitHub: pipeline repository
-        |
-        v
-Published Python package
-        |
-        v
-windmill-workspace
-  └── f/
-      └── <folder>/
-          ├── <job>.py
-          ├── <job>.script.yaml
-          └── folder.meta.yaml
-        |
-        v
-Windmill executes the wrapper
-        |
-        v
-Pipeline package + OpenBao secrets
+GitHub repositories
+│
+├── data-ingest-a
+│   └── Pipeline A implementation
+│
+├── data-ingest-b
+│   └── Pipeline B implementation
+│
+├── data-ingest-c
+│   └── Pipeline C implementation
+│
+├── openbao_client
+│   └── Shared secret-access library
+│
+└── windmill-workspace
+    └── f/
+        ├── pipeline_a/
+        │   ├── run_a.py
+        │   └── run_a.script.yaml
+        ├── pipeline_b/
+        │   ├── run_b.py
+        │   └── run_b.script.yaml
+        └── pipeline_c/
+            ├── run_c.py
+            └── run_c.script.yaml
+                    │
+                    ▼
+              Windmill server
+                    │
+          ┌─────────┼─────────┐
+          ▼         ▼         ▼
+      Pipeline A Pipeline B Pipeline C
+          │         │         │
+          └─────────┼─────────┘
+                    ▼
+               OpenBao
+          (secrets as needed)
 ```
+
+The diagram represents logical relationships, not the exact runtime call sequence: each wrapper invokes its own pipeline and retrieves secrets when required.
+
+## What a Wrapper Does
+
+A typical wrapper is intentionally small. It:
+
+1. Retrieves an OpenBao token from a Windmill variable.
+2. Creates an `OpenBaoClient`.
+3. Imports the relevant pipeline package.
+4. Invokes the pipeline's entry point.
+5. Returns the result to Windmill.
+
+Conceptual example:
+
+```python
+import wmill
+from openbao_client import OpenBaoClient
+from data_ingest_a import run_pipeline
+
+def main():
+    token = wmill.get_variable("f/infrastructure/openbao_token")
+    bao = OpenBaoClient(
+        address="http://openbao:8200",
+        token=token,
+    )
+    return run_pipeline(bao)
+```
+
+The exact package imports and function signatures depend on each pipeline's implementation.
 
 ## Day-to-Day Workflow
 
-### Create or update a job
+### Develop a pipeline
 
-1. Develop and test reusable logic in its own Python repository.
-2. Publish or otherwise make the package available to Windmill.
-3. Create or update the wrapper and metadata in `windmill-workspace`.
-4. Test the wrapper and its inputs.
-5. Review the deployment plan.
-6. Deploy the changes and verify execution.
+1. Work in the pipeline's own repository, such as `data-ingest-a`.
+2. Implement and test the reusable Python logic.
+3. Commit and publish the package so Windmill can install it.
+4. Keep pipeline-specific tests and dependencies in that repository.
+
+### Integrate it with Windmill
+
+1. Add a wrapper script and metadata under `f/` in `windmill-workspace`.
+2. Declare the required Python packages in the Windmill script's dependency metadata.
+3. Configure inputs and other Windmill-specific settings.
+4. Test the wrapper in Windmill.
 
 ### Deploy with the Windmill CLI
 
-From the repository root:
+From the `windmill-workspace` repository root:
 
 ```bash
 # Review local changes
 git status
 git diff
 
-# Preview deployment changes
+# Preview the deployment
 wmill sync push --dry-run
 
-# Deploy only after reviewing the plan
+# Deploy after reviewing the plan
 wmill sync push
 ```
 
-The CLI uses `wmill.yaml` to determine which local files are in scope. Review the planned changes before every deployment: synchronization can modify or delete remote items within that scope.
+The `wmill.yaml` file controls which local files are included in synchronization. Review every dry run: synchronization can modify or delete remote items within the configured scope.
 
-### Git workflow
-
-Commit job definitions and configuration to Git so changes are auditable and reversible.
+### Commit and publish changes
 
 ```bash
 git add f/ wmill.yaml wmill-lock.yaml
-git commit -m "Add or update ingestion job"
+git commit -m "Add or update Windmill job"
 git push
 ```
 
-Pushing to GitHub does **not** deploy to Windmill automatically in the current setup. Deployment is performed manually with the CLI until CI/CD is configured.
+Pushing to GitHub does not deploy to Windmill automatically in the current setup. Deployment is manual until CI/CD is configured.
 
-## Configuration and Secrets
+## Responsibilities and Boundaries
 
-- Keep secrets out of Git. Store them in OpenBao or Windmill variables.
-- Keep Windmill-specific configuration in this repository.
-- Keep reusable business and data-processing logic in the pipeline repositories.
-- Use `wmill.yaml` to control the sync scope.
-- Review changes to scripts, metadata, schedules, flows, and other resources before deploying them.
+- **Pipeline repositories:** own reusable business logic, transformations, tests, and package dependencies.
+- **`openbao_client`:** owns the shared Python interface for accessing secrets.
+- **`windmill-workspace`:** owns Windmill-specific wrappers, metadata, and deployment configuration.
+- **OpenBao:** stores secrets; credentials should not be committed to Git.
+- **Windmill:** runs jobs and manages schedules, execution history, and logs.
+- **GitHub Actions:** will eventually automate validation and deployment.
+
+## Important Considerations
+
+- **Package versions:** pin pipeline dependencies to known versions or commits for predictable deployments.
+- **Independent deployment:** publishing a new pipeline package does not automatically update a Windmill job.
+- **Secrets:** keep secrets in OpenBao or Windmill variables, never in Git.
+- **Sync scope:** keep `wmill.yaml` narrowly scoped and review dry runs before deployment.
+- **Additional configuration:** schedules, flows, resources, and other Windmill objects may also need version control.
 
 ## Planned Improvements
 
-- Set up a self-hosted GitHub Actions runner.
+- Configure a self-hosted GitHub Actions runner.
 - Automate validation and deployment from trusted GitHub changes.
-- Pin pipeline dependencies to known versions or commits.
+- Establish package versioning and dependency update procedures.
 - Version-control schedules and flows where appropriate.
-- Add deployment safeguards and a documented rollback procedure.
+- Document deployment safeguards and rollback procedures.
 
 ## Guiding Principle
 
