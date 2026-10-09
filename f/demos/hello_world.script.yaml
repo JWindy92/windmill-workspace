@@ -1,0 +1,14 @@
+summary: Demo Python job for CLI deployment
+description: Returns a greeting, UTC timestamp, and execution status.
+lock: '!inline f/demos/hello_world.script.lock'
+kind: script
+schema:
+  $schema: https://json-schema.org/draft/2020-12/schema
+  type: object
+  properties:
+    name:
+      type: string
+      description: Name to greet
+      default: Windmill
+      originalType: string
+  required: []

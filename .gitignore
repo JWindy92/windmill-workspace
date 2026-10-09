@@ -1,0 +1,13 @@
+# Editor and OS files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Generated AI tooling
+.agents/
+.claude/
+
+# TypeScript support (not needed for this Python-only project)
+tsconfig.json
+tsconfig.wmill.json
+rt.d.ts
