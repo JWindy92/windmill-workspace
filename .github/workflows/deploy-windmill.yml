@@ -22,7 +22,7 @@ permissions:
 concurrency:
   group: windmill-deployment
   cancel-in-progress: false
-  
+
 jobs:
   deploy:
     runs-on: self-hosted
@@ -48,6 +48,7 @@ jobs:
         run: |
           wmill sync push \
             --yes \
+            --auto-metadata \
             --skip-variables \
             --skip-resources \
             --workspace home \
