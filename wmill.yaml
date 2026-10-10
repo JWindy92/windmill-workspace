@@ -6,8 +6,9 @@
 defaultTs: bun                  # bun or deno
 
 # Glob patterns for files to include in sync
-includes: 
-  - "f/demos/**"           # use ** for all, f/** for folder-scoped
+includes:
+  - "f/demos/**"
+  - "f/pipelines/letterboxd_ingest/**"
 
 # Additional glob patterns merged with includes (useful in workspace overrides)
 # extraIncludes: []
