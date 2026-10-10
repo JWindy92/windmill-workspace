@@ -19,6 +19,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: windmill-deployment
+  cancel-in-progress: false
+  
 jobs:
   deploy:
     runs-on: self-hosted
