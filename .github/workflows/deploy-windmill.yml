@@ -36,4 +36,4 @@ jobs:
             --skip-resources \
             --workspace home \
             --token "$WMILL_TOKEN" \
-            --base-url "$WMILL_BASE_URL"
+            --base-url "http://10.0.0.237:8001"
