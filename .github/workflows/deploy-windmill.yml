@@ -1,0 +1,39 @@
+name: Deploy Windmill
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Windmill CLI
+        run: npm install -g windmill-cli
+
+      - name: Deploy to Windmill
+        env:
+          WMILL_TOKEN: ${{ secrets.WMILL_TOKEN }}
+          WMILL_BASE_URL: ${{ vars.WMILL_BASE_URL }}
+        run: |
+          wmill sync push \
+            --yes \
+            --skip-variables \
+            --skip-resources \
+            --workspace home \
+            --token "$WMILL_TOKEN" \
+            --base-url "$WMILL_BASE_URL"
