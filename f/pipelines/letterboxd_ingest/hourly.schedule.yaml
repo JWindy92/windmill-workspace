@@ -1,0 +1,7 @@
+summary: Import Letterboxd activity hourly
+script_path: f/pipelines/letterboxd_ingest/run
+is_flow: false
+args: {}
+schedule: "0 0 * * * *"
+timezone: America/New_York
+enabled: true

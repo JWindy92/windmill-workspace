@@ -51,6 +51,7 @@ jobs:
             --auto-metadata \
             --skip-variables \
             --skip-resources \
+            --include-schedules \
             --workspace home \
             --token "$WMILL_TOKEN" \
             --base-url "http://10.0.0.237:8001"

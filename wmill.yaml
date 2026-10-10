@@ -51,7 +51,7 @@ skipDatatableMigrations: false
 
 # Uncomment to include these (excluded by default):
 # Include schedules in sync
-# includeSchedules: true
+includeSchedules: true
 
 # Include triggers (http, websocket, kafka, etc.) in sync
 # includeTriggers: true
