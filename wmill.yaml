@@ -9,6 +9,7 @@ defaultTs: bun                  # bun or deno
 includes:
   - "f/demos/**"
   - "f/pipelines/letterboxd_ingest/**"
+  - "f/pipelines/finance_pipeline/**"
 
 # Additional glob patterns merged with includes (useful in workspace overrides)
 # extraIncludes: []
