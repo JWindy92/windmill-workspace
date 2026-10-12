@@ -1,7 +1,7 @@
 # requirements:
 # wmill
 # openbao-client@git+https://github.com/JWindy92/openbao_client.git
-# finance-pipeline@git+https://github.com/JWindy92/budget_tool.git
+# finance-pipeline@git+https://github.com/JWindy92/budget_tool.git@main
 
 import wmill
 from openbao_client import OpenBaoClient
