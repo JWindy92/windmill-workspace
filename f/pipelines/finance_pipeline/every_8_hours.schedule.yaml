@@ -1,0 +1,7 @@
+summary: Import financial data every 8 hours
+script_path: f/pipelines/finance_pipeline/run
+is_flow: false
+args: {}
+schedule: "0 0 */8 * * *"
+timezone: America/New_York
+enabled: true
