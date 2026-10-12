@@ -21,5 +21,5 @@ def main():
 
     return ingest_simplefin(
         access_url=access_url,
-        output_path="/tmp/account_balances.json",
+        output_path="/data/pipelines/financial/raw/balances.json",
     )
